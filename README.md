@@ -1,21 +1,23 @@
-# AudioScribe Local — 0.3.0
+# AudioScribe Local
+
+[Descargar instaladores](https://github.com/adrian-afergon/AudioScribe/releases) · [Tests y builds](https://github.com/adrian-afergon/AudioScribe/actions)
 
 Aplicación local para detectar nuevos MP3/MP4, transcribir en español y separar hablantes. Cola SQLite persistente, recuperación por bloques y resultados Markdown. Primera versión: destilado manual; la integración automática con tu second brain se aborda en una segunda fase.
 
 
 ## Accesos y arranque (0.3.0)
 
-En el asistente, abre la pesta?a **Accesos y arranque** antes de instalar:
+En el asistente, abre la pestaña **Accesos y arranque** antes de instalar:
 
 | Plataforma | Escritorio opcional | Lista de aplicaciones opcional | Anclado guiado |
 |---|---|---|---|
-| Windows | Acceso `.lnk` | Men? Inicio | Inicio o barra de tareas |
-| Linux | Lanzador `.desktop` | Men? de aplicaciones | Favoritos o panel, seg?n escritorio |
+| Windows | Acceso `.lnk` | Menú Inicio | Inicio o barra de tareas |
+| Linux | Lanzador `.desktop` | Menú de aplicaciones | Favoritos o panel, según escritorio |
 | macOS | Acceso a `AudioScribe.app` | `~/Applications` | Dock |
 
-Las opciones de escritorio y ayuda para anclar empiezan desmarcadas; la lista de aplicaciones est? seleccionada. La ayuda para anclar activa tambi?n la lista de aplicaciones. Al terminar se muestran los pasos: el anclado lo completa la persona en su sistema. En Linux puede ser necesario permitir iniciar el lanzador; algunos escritorios no muestran iconos.
+Las opciones de escritorio y ayuda para anclar empiezan desmarcadas; la lista de aplicaciones está seleccionada. La ayuda para anclar activa también la lista de aplicaciones. Al terminar se muestran los pasos: el anclado lo completa la persona en su sistema. En Linux puede ser necesario permitir iniciar el lanzador; algunos escritorios no muestran iconos.
 
-El arranque al iniciar sesi?n tiene su propia casilla, independiente de los accesos. Las elecciones se guardan en `launcher-options.json` junto a la configuraci?n. Desmarcar una opci?n no elimina accesos existentes. Puedes cambiar las opciones desde **Configurar**; si el servicio est? activo, detenlo antes de guardar la configuraci?n.
+El arranque al iniciar sesión tiene su propia casilla, independiente de los accesos. Las elecciones se guardan en `launcher-options.json` junto a la configuración. Desmarcar una opción no elimina accesos existentes. Puedes cambiar las opciones desde **Configurar**; si el servicio está activo, detenlo antes de guardar la configuración.
 
 Referencias: [Windows Inicio](https://learn.microsoft.com/en-us/windows/configuration/start/layout), [Dock de macOS](https://support.apple.com/guide/mac-help/desktop-menu-bar-and-dock-mchlws12345m2/mac), [lanzadores Linux](https://specifications.freedesktop.org/desktop-entry/latest-single/).
 
@@ -90,7 +92,7 @@ El asistente comprueba las rutas sin escribir en el second brain. No se inspecci
 
 Se incluyen archivos `.tar.gz` de instalación para Linux y macOS, en x86_64 y ARM64. Extrae el archivo correspondiente y ejecuta `Instalar.sh` (Linux) o `Instalar.command` (macOS). Se prepara un Python privado para mostrar el mismo asistente de rutas; no hace falta Python preinstalado. El asistente necesita una sesión gráfica.
 
-El código incluye arranque por `systemd --user` y `launchd`, respectivamente. Estos paquetes se han ensamblado en Windows y requieren validación en sus sistemas de destino. Linux requiere una distribución con `systemd` para el inicio automático; otros sistemas pueden ejecutar la CLI manualmente. No se consideran validados por haber probado Windows.
+El código incluye arranque por `systemd --user` y `launchd`, respectivamente. Los paquetes bootstrap se ensamblan sin ejecutar la instalación de cada plataforma; requieren validación de instalación en sus sistemas de destino. Linux requiere una distribución con `systemd` para el inicio automático; otros sistemas pueden ejecutar la CLI manualmente. No se consideran validados por haber probado Windows.
 
 Los paquetes generados no están firmados ni notarizados. Esta versión no incluye actualizador automático. Reejecutar un instalador actualizado, con el servicio detenido, conserva la configuración y SQLite. Para desactivar la aplicación basta con `disable-autostart` y `stop`; no borres el directorio de datos si quieres conservar el historial.
 
@@ -105,7 +107,7 @@ python installer/build.py --output dist
 python installer/build_portable.py --output dist/unix
 ```
 
-La compilación incluye un gestor `uv` y el paquete de la aplicación. El instalador descarga dependencias pesadas en un entorno aislado. La acción `.github/workflows/packages.yml` permite construir paquetes por plataforma desde un repositorio GitHub mediante ejecución manual. No se ha publicado ni ejecutado remotamente por defecto.
+La compilación incluye un gestor `uv` y el paquete de la aplicación. El instalador descarga dependencias pesadas en un entorno aislado. La acción `.github/workflows/packages.yml` ejecuta tests en Windows, Linux y macOS y construye cinco instaladores en cada push a `main`, pull request o ejecución manual. Solo los pushes de tags `vX.Y.Z` publican releases, después de superar los tests y todas las builds. Las ejecuciones manuales nunca publican una release, aunque se elija un tag. Los paquetes Unix son archivos bootstrap ensamblados en Linux; los tests no validan la instalación gráfica completa en cada plataforma.
 
 Con dependencias de compilación ya instaladas, `build.py --offline` evita descargas. `build_portable.py --offline` reutiliza los binarios de uv de los archivos de salida existentes.
 
@@ -121,18 +123,18 @@ Para pruebas reales del motor: `python -m pip install -e ".[engine]"`. Las prueb
 
 Consulta las licencias completas de cada dependencia antes de redistribuir una versión comercial.
 
-## Clonar y publicar una versi?n
+## Clonar y publicar una versión
 
 ```sh
 git clone https://github.com/adrian-afergon/AudioScribe.git
 cd AudioScribe
 python -m venv .venv
-# Activa .venv seg?n tu sistema.
+# Activa .venv según tu sistema.
 python -m pip install -e ".[test]"
 python -m pytest -q
 ```
 
-Para una nueva versi?n, cambia `version` en `pyproject.toml` y `__version__` en `src/audioscribe/__init__.py`, actualiza la documentaci?n y confirma los cambios. Ambos valores deben coincidir con el tag; se admiten versiones estables `X.Y.Z`. Despu?s:
+Para una nueva versión, cambia `version` en `pyproject.toml` y `__version__` en `src/audioscribe/__init__.py`, actualiza la documentación y confirma los cambios. Ambos valores deben coincidir con el tag; se admiten versiones estables `X.Y.Z`. Después:
 
 ```sh
 git push origin main
@@ -140,6 +142,6 @@ git tag -a v0.3.0 -m "AudioScribe 0.3.0"
 git push origin v0.3.0
 ```
 
-Sustituye `0.3.0` por la versi?n que vayas a publicar. No reutilices ni muevas tags publicados. No necesitas secretos adicionales: Actions utiliza `GITHUB_TOKEN`, con escritura solo en el job de release. Se prepara un borrador, se suben los cinco instaladores y `SHA256SUMS.txt`, y se publica ?nicamente al terminar. Una ejecuci?n fallida no publica una release incompleta; un reintento puede completar su borrador. Una release ya publicada no se sobrescribe.
+Sustituye `0.3.0` por la versión que vayas a publicar. No reutilices ni muevas tags publicados. No necesitas secretos adicionales: Actions utiliza `GITHUB_TOKEN`, con escritura solo en el job de release. Se prepara un borrador, se suben los cinco instaladores y `SHA256SUMS.txt`, y se publica únicamente al terminar. Una ejecución fallida no publica una release incompleta; un reintento puede completar su borrador. Una release ya publicada no se sobrescribe.
 
-Los instaladores llevan la versi?n en el nombre. GitHub tambi?n ofrece el c?digo fuente del tag en ZIP y tar.gz. Las builds de ramas y PR quedan como artefactos de Actions durante 14 d?as. No se incluyen grabaciones, transcripciones, modelos ni configuraciones personales en Git.
+Los instaladores llevan la versión en el nombre. GitHub también ofrece el código fuente del tag en ZIP y tar.gz. Las builds de ramas y PR quedan como artefactos de Actions durante 14 días. No se incluyen grabaciones, transcripciones, modelos ni configuraciones personales en Git.

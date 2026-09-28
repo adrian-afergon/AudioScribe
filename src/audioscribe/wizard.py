@@ -68,13 +68,13 @@ class Wizard:
         self.applications_shortcut = tk.BooleanVar(value=saved.applications)
         self.pin_help = tk.BooleanVar(value=saved.pin_help)
         desktop_label, apps_label, pin_label = labels()
-        ttk.Label(accesses, text="Elige c?mo abrir AudioScribe", style="Subtitle.TLabel").pack(anchor="w", pady=(0, 12))
+        ttk.Label(accesses, text="Elige cómo abrir AudioScribe", style="Subtitle.TLabel").pack(anchor="w", pady=(0, 12))
         ttk.Checkbutton(accesses, text=desktop_label, variable=self.desktop_shortcut).pack(anchor="w", pady=6)
         ttk.Checkbutton(accesses, text=apps_label, variable=self.applications_shortcut,
                         command=lambda: self.pin_help.set(False) if not self.applications_shortcut.get() else None).pack(anchor="w", pady=6)
         ttk.Checkbutton(accesses, text=pin_label, variable=self.pin_help,
                         command=lambda: self.applications_shortcut.set(True) if self.pin_help.get() else None).pack(anchor="w", pady=6)
-        ttk.Label(accesses, text="El anclado se completa en el sistema al terminar. Se mostrar?n los pasos si seleccionas la ayuda.\n\nDesmarcar una opci?n no elimina accesos que ya existan.", wraplength=690).pack(anchor="w", pady=12)
+        ttk.Label(accesses, text="El anclado se completa en el sistema al terminar. Se mostrarán los pasos si seleccionas la ayuda.\n\nDesmarcar una opción no elimina accesos que ya existan.", wraplength=690).pack(anchor="w", pady=12)
         ttk.Separator(accesses).pack(fill="x", pady=12)
         form = ttk.Frame(container)
         form.pack(fill="x")
