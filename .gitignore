@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+build/
+dist/
+*.spec
+*.sqlite3*
+models/
+
+# Local recordings, credentials and runtime state
+.env
+.env.*
+!.env.example
+config.toml
+launcher-options.json
+*.log
+*.mp3
+*.mp4
+*.wav
+data/
+runtime/
+environment/
+download-cache/
+.DS_Store
+Thumbs.db
