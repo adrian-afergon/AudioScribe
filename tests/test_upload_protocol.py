@@ -4,6 +4,8 @@ import socket
 import sys
 import time
 
+import pytest
+
 from audioscribe.upload.protocol import make_protocol_factory
 from audioscribe.upload.protocol import ProtocolMetrics
 from uvicorn import Config
