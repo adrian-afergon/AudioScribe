@@ -33,7 +33,7 @@ from audioscribe.upload.validator import (
 from lq04_controls import run_sealed_control
 from lq04_fixture_hashes import LQ04_FIXTURE_SHA256, fixture_sha256
 
-pytest_plugins = ("lq04_evidence",)
+pytest_plugins = ("lq04_evidence",) if sys.platform == "linux" else ()
 
 
 def _drain_child(process, *, deadline):

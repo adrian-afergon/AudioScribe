@@ -325,6 +325,8 @@ def _self_vm_rss_kib():
 
 
 def test_validator_accepts_media_when_forking_parent_holds_high_rss():
+    if sys.platform != "linux":
+        pytest.skip("the fork-inherited RSS measurement reads Linux /proc metrics")
     from audioscribe.upload.validator import _MEMORY_BYTES, validate_media
 
     ballast = bytearray(160 * 1024 * 1024)

@@ -1,6 +1,7 @@
 import asyncio
 import os
 import socket
+import sys
 import time
 
 from audioscribe.upload.protocol import make_protocol_factory
@@ -390,6 +391,8 @@ def test_chunked_framing_reaches_delegate_only_after_bounded_metadata_checks():
 
 
 def test_instrumented_loopback_streams_opaque_body_with_bounded_retention():
+    if sys.platform != "linux":
+        pytest.skip("the retention instrumentation reads Linux /proc metrics")
     async def exercise():
         requested_bytes = int(os.environ.get("AUDIOSCRIBE_Q02_SIZE_BYTES", 64 * 1024 * 1024))
         concurrency = int(os.environ.get("AUDIOSCRIBE_Q02_CONCURRENCY", "1"))

@@ -21,6 +21,10 @@ from pathlib import Path
 
 import pytest
 
+# The sampler reads Linux /proc metrics; the harness is qualified for Linux only.
+pytestmark = pytest.mark.skipif(sys.platform != "linux",
+                                reason="the resource sampler reads Linux /proc metrics")
+
 TOOLS = Path(__file__).resolve().parent.parent / "tools"
 sys.path.insert(0, str(TOOLS))
 
