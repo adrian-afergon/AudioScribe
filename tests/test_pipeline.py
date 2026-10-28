@@ -33,7 +33,9 @@ def pipeline(tmp_path, monkeypatch):
     def diarizer(audio, hook):
         return SimpleNamespace(exclusive_speaker_diarization=[(SimpleNamespace(start=0,end=100), "a")])
     monkeypatch.setattr(engine, "load_diarization", lambda: diarizer)
-    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(from_numpy=lambda audio: SimpleNamespace(unsqueeze=lambda _: audio)))
+    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(
+        from_numpy=lambda audio: SimpleNamespace(unsqueeze=lambda _: audio),
+        cuda=SimpleNamespace(empty_cache=lambda: None)))
     return engine, config, job, calls
 
 

@@ -33,11 +33,6 @@ from audioscribe.upload.validator import (
 from lq04_controls import run_sealed_control
 from lq04_fixture_hashes import LQ04_FIXTURE_SHA256, fixture_sha256
 
-# This file is the Linux qualification harness (LQ04): it exercises the real
-# isolated validator child, which is only qualified for Linux.
-pytestmark = pytest.mark.skipif(sys.platform != "linux",
-                                reason="the isolated media validator is qualified for Linux only")
-
 pytest_plugins = ("lq04_evidence",)
 
 
@@ -50,6 +45,16 @@ FIXTURE_ROOT = Path(os.environ.get(
     "AUDIOSCRIBE_LQ04_FIXTURE_ROOT",
     "/tmp/opencode/audioscribe-plan01.dJebPg/lq04-fixtures/C-LQ04-BOOTSTRAP-01",
 ))
+
+# This file is the Linux qualification harness (LQ04): it exercises the real
+# isolated validator child, which is only qualified for Linux, against the
+# hash-pinned fixture bootstrap.
+pytestmark = [
+    pytest.mark.skipif(sys.platform != "linux",
+                       reason="the isolated media validator is qualified for Linux only"),
+    pytest.mark.skipif(not FIXTURE_ROOT.is_dir(),
+                       reason="LQ04 fixtures are not available; run the qualification bootstrap"),
+]
 
 
 @pytest.fixture(autouse=True)

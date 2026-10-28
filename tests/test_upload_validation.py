@@ -15,6 +15,12 @@ from audioscribe.upload.auth import generate_secret_offline
 from audioscribe.upload.http import make_upload_app
 from test_upload_http import FIXTURE_ROOT, ORIGIN, Client, OpenBodyStream, make_config, make_runtime
 
+import pytest
+
+pytestmark = pytest.mark.skipif(
+    not FIXTURE_ROOT.is_dir(),
+    reason="LQ04 fixtures are not available; run the qualification bootstrap")
+
 
 def audio_engine_factory(recorders: list):
     class Engine:

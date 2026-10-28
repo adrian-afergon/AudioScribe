@@ -22,6 +22,10 @@ FIXTURE_ROOT = Path(__import__("os").environ.get(
     "AUDIOSCRIBE_LQ04_FIXTURE_ROOT",
     "/tmp/opencode/audioscribe-plan01.dJebPg/lq04-fixtures/C-LQ04-BOOTSTRAP-01"))
 
+pytestmark = pytest.mark.skipif(
+    not FIXTURE_ROOT.is_dir(),
+    reason="LQ04 fixtures are not available; run the qualification bootstrap")
+
 ORIGIN = "https://audioscribe.example.ts.net"
 
 

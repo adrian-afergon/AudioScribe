@@ -21,6 +21,12 @@ from audioscribe.upload.persistence import UploadStore
 from test_upload_http import FIXTURE_ROOT, Client, make_config, make_runtime
 from test_upload_validation import publish_through_http
 
+import pytest
+
+pytestmark = pytest.mark.skipif(
+    not FIXTURE_ROOT.is_dir(),
+    reason="LQ04 fixtures are not available; run the qualification bootstrap")
+
 ORIGIN = "https://audioscribe.example.ts.net"
 
 

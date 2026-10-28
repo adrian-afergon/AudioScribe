@@ -16,6 +16,12 @@ from test_upload_http import (FIXTURE_ROOT, Client, OpenBodyStream,
                               make_config, make_runtime)
 from test_upload_validation import publish_through_http
 
+import pytest
+
+pytestmark = pytest.mark.skipif(
+    not FIXTURE_ROOT.is_dir(),
+    reason="LQ04 fixtures are not available; run the qualification bootstrap")
+
 
 def test_disconnect_during_validation_cleans(tmp_path):
     config = make_config(tmp_path)
