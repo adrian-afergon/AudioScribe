@@ -49,6 +49,12 @@ La primera instalación necesita Internet y puede tardar varios minutos. El prog
 
 La aplicación no sube audios. La diarización utiliza exclusivamente el modelo local Community-1; no se utiliza el servicio alojado de pyannoteAI. Se desactiva su telemetría. La API de OpenAI no forma parte de esta versión.
 
+## Uploads por navegador (opcional, Tailscale)
+
+Existe un servicio de subida opcional, desactivado por defecto: recibe MP3/MP4 por el navegador hacia la carpeta de entrada, los valida en un proceso aislado y los publica en la cola normal. Solo escucha en `127.0.0.1:8765`; el acceso desde otros equipos de tu tailnet se publica manualmente con Tailscale Serve (HTTPS). Nunca se expone a internet (sin Funnel) y no hay acceso por HTTP/LAN directo. La autenticación por secreto compartido no cifra el tráfico: el cifrado lo aporta Serve.
+
+Los pasos del operador —requisitos, el comando exacto de `tailscale serve`, verificación, límites de seguridad y el flujo del secreto— están en [docs/UPLOAD-SERVE.md](docs/UPLOAD-SERVE.md).
+
 ## Qué se considera nuevo
 
 Al guardar por primera vez la configuración de una carpeta, los audios existentes se registran como excluidos. Los que entren después, incluso con la aplicación cerrada, se incorporan a la cola. También se detectan archivos modificados como nuevas versiones. Las subcarpetas solo se incluyen si se seleccionan.
