@@ -5,7 +5,6 @@ from __future__ import annotations
 import ctypes
 import ctypes.util
 import errno
-import fcntl
 import json
 import mmap
 import os
@@ -15,6 +14,9 @@ import subprocess
 import sys
 import threading
 import time
+
+if sys.platform == "linux":
+    import fcntl
 from pathlib import Path
 
 import pytest
