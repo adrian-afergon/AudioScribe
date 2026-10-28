@@ -12,12 +12,16 @@ dependencies = ["watchdog>=6,<7"]
 [project.optional-dependencies]
 engine = ["faster-whisper>=1.2,<2", "pyannote.audio>=4,<5", "huggingface-hub>=0.34,<2", "psutil>=6,<8"]
 test = ["pytest>=8,<10", "numpy>=2,<3"]
+upload = ["uvicorn==0.54.0", "h11==0.16.0", "av==15.1.0"]
 
 [project.scripts]
 audioscribe = "audioscribe.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+audioscribe = ["upload/static/*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

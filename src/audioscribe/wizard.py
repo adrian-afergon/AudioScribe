@@ -6,14 +6,28 @@ import shutil
 import sys
 import threading
 import tkinter as tk
+from dataclasses import replace
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 import webbrowser
 
-from .config import Config
+from .config import Config, reject_protected_upload_change
 from .shortcuts import ShortcutOptions, create_launchers, labels, pin_instructions
 
 MODEL_URL = "https://huggingface.co/pyannote/speaker-diarization-community-1"
+
+
+def preserve_upload_settings(config: Config, existing: Config) -> Config:
+    return replace(
+        config,
+        upload_enabled=existing.upload_enabled,
+        upload_origin=existing.upload_origin,
+        upload_port=existing.upload_port,
+        upload_max_bytes=existing.upload_max_bytes,
+        upload_concurrency=existing.upload_concurrency,
+        upload_reserve_bytes=existing.upload_reserve_bytes,
+        upload_inactivity_seconds=existing.upload_inactivity_seconds,
+    )
 
 
 def prepare_tk():
@@ -164,6 +178,11 @@ class Wizard:
             if self.existing:
                 for name in ("cpu_threads", "poll_seconds", "stable_seconds", "chunk_seconds", "max_attempts"):
                     setattr(config, name, getattr(self.existing, name))
+                config = preserve_upload_settings(config, self.existing)
+                # S01.03/S04.08: protected upload boundary changes are rejected
+                # at the save point while uploads are enabled, before any
+                # validation probes create folders.
+                reject_protected_upload_change(self.existing, config)
             config.validate()
             if shutil.disk_usage(config.data_dir).free < 5 * 1024 ** 3:
                 raise ValueError("Hay menos de 5 GB libres en el directorio de datos. Selecciona otro disco.")
