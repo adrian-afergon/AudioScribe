@@ -35,3 +35,22 @@ def test_systemd_quotes_paths():
     unit = systemd_unit(["/home/u/a b/python", "--config", '/home/u/100%/$datos.toml'])
     assert '"/home/u/a b/python"' in unit
     assert "100%%/$$datos" in unit
+
+
+def test_diarization_teardown_returns_cuda_pool_to_driver(monkeypatch):
+    import sys
+    import types
+
+    from audioscribe.engine import LocalEngine
+
+    released = []
+    fake_torch = types.SimpleNamespace(cuda=types.SimpleNamespace(
+        empty_cache=lambda: released.append(True)))
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+    engine = LocalEngine(config=object())
+    engine.diarizer = object()
+    engine._release_diarization_memory()
+
+    assert engine.diarizer is None
+    assert released == [True]
