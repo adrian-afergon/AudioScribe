@@ -1,0 +1,79 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0 auto;
+  max-width: 60rem;
+  padding: 0 1rem 2rem;
+  color: #1c2430;
+  background: #f6f7f9;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+}
+
+h1 { font-size: 1.4rem; margin: 0; }
+h2 { font-size: 1.1rem; }
+
+label { display: block; margin: 0.5rem 0 0.25rem; font-weight: 600; }
+
+input[type="password"],
+input[type="file"] {
+  padding: 0.4rem;
+  border: 1px solid #b9c2cc;
+  border-radius: 4px;
+  background: #fff;
+}
+
+button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #5a6b7d;
+  border-radius: 4px;
+  background: #eef2f6;
+  cursor: pointer;
+}
+
+button:disabled { opacity: 0.5; cursor: default; }
+
+.error { color: #a12028; }
+.stale { color: #8a5a00; }
+
+#queue-list { list-style: none; padding: 0; }
+
+.queue-item {
+  border: 1px solid #ccd4dc;
+  border-radius: 6px;
+  background: #fff;
+  padding: 0.6rem 0.8rem;
+  margin: 0.5rem 0;
+}
+
+.queue-item .name { font-weight: 600; overflow-wrap: anywhere; }
+.queue-item .phase { font-weight: 600; }
+.queue-item .downstream-label { color: #5a6b7d; }
+
+.progress-track {
+  height: 8px;
+  background: #dde3ea;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0.35rem 0;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0;
+  background: #2d6a4f;
+}
+
+table { width: 100%; border-collapse: collapse; background: #fff; }
+
+th, td {
+  border: 1px solid #ccd4dc;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
