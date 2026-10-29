@@ -18,6 +18,7 @@ class ServiceControl:
         self.stop = stop
         self.pause_file = data_dir / "pause.request"
         self.stop_file = data_dir / "stop.request"
+        self.stop_gate = None
         self.guard = threading.Lock()
         self.state = {"pid": os.getpid(), "version": __version__, "started": time.time(),
                       "state": "starting", "job_id": None, "scanner_error": None,
@@ -44,9 +45,15 @@ class ServiceControl:
 
     def checkpoint(self) -> bool:
         """Cooperative pause keeps generator, model and in-flight block in memory."""
-        if self.stop.is_set() or self.stop_file.exists():
+        if self.stop.is_set():
             self.update(state="stopping")
             return True
+        if self.stop_file.exists():
+            # A legacy plain stop request is unforced; the owner upload guard
+            # decides atomically and must not be bypassed by worker checkpoints.
+            if self.stop_gate is None or self.stop_gate(stop_request_forced(self.directory)):
+                self.update(state="stopping")
+                return True
         while self.pause_file.exists():
             self.update(state="paused")
             if self.stop.wait(.15) or self.stop_file.exists():
@@ -63,15 +70,23 @@ class ServiceControl:
         self.flush()
 
 
-def request(data_dir: Path, action: str):
+def request(data_dir: Path, action: str, force: bool = False):
     if action == "pause":
         atomic_write(data_dir / "pause.request", "pause\n")
     elif action == "resume":
         (data_dir / "pause.request").unlink(missing_ok=True)
     elif action == "stop":
-        atomic_write(data_dir / "stop.request", "stop\n")
+        atomic_write(data_dir / "stop.request", "stop force\n" if force else "stop\n")
     else:
         raise ValueError("Acción desconocida")
+
+
+def stop_request_forced(directory: Path) -> bool:
+    try:
+        content = (directory / "stop.request").read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return "force" in content
 
 
 def service_active(data_dir: Path) -> bool:

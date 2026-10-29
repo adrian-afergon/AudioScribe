@@ -106,6 +106,18 @@ class LocalEngine:
                 self.diarizer.to(torch.device("cuda"))
         return self.diarizer
 
+    def _release_diarization_memory(self):
+        """Drop the diarizer and return its CUDA pool memory to the driver.
+
+        gc.collect() alone leaves the caching allocator's reserved segments
+        in place; on small GPUs the next whisper load then fails with an
+        out-of-memory error even though no model is running."""
+        self.diarizer = None
+        import gc
+        gc.collect()
+        import torch
+        torch.cuda.empty_cache()
+
     def decode(self, source: Path, destination: Path):
         import av
         import numpy as np
@@ -204,8 +216,7 @@ class LocalEngine:
                      for turn, speaker in output.exclusive_speaker_diarization]
             turns.sort(key=lambda turn: turn["start"])
             atomic_write(turns_path, json.dumps(turns))
-            self.diarizer = None
-            gc.collect()
+            self._release_diarization_memory()
         if digest(source) != job["sha256"]:
             raise ValueError("El original cambió durante el trabajo. No se publicó el resultado.")
         if stopped():

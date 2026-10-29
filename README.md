@@ -5,7 +5,7 @@
 Aplicación local para detectar nuevos MP3/MP4, transcribir en español y separar hablantes. Cola SQLite persistente, recuperación por bloques y resultados Markdown. Primera versión: destilado manual; la integración automática con tu second brain se aborda en una segunda fase.
 
 
-## Accesos y arranque (0.3.0)
+## Accesos y arranque (0.4.0)
 
 En el asistente, abre la pestaña **Accesos y arranque** antes de instalar:
 
@@ -43,11 +43,17 @@ El porcentaje es del texto transcrito, no una estimación de tiempo total. La se
 
 ## Actualizar una instalación existente
 
-Ejecuta el instalador 0.3.0 en la misma ubicación. Detecta la configuración de la ubicación predeterminada, conserva las rutas y reutiliza los modelos descargados. Si elegiste otra ubicación, selecciónala y utiliza las mismas rutas guardadas en su `config.toml`. El instalador solicita una parada segura antes de sustituir el paquete y abre el panel al terminar. No es necesario volver a descargar modelos ni introducir el token si ya están preparados.
+Ejecuta el instalador 0.4.0 en la misma ubicación. Detecta la configuración de la ubicación predeterminada, conserva las rutas y reutiliza los modelos descargados. Si elegiste otra ubicación, selecciónala y utiliza las mismas rutas guardadas en su `config.toml`. El instalador solicita una parada segura antes de sustituir el paquete y abre el panel al terminar. No es necesario volver a descargar modelos ni introducir el token si ya están preparados.
 
 La primera instalación necesita Internet y puede tardar varios minutos. El progreso detallado está en `installation.log`, dentro de la instalación. Si falla la descarga, repite el asistente con las mismas rutas: se reutilizan los archivos descargados. Si pospones los modelos, la configuración queda guardada, pero el servicio no se activa todavía.
 
 La aplicación no sube audios. La diarización utiliza exclusivamente el modelo local Community-1; no se utiliza el servicio alojado de pyannoteAI. Se desactiva su telemetría. La API de OpenAI no forma parte de esta versión.
+
+## Uploads por navegador (opcional, Tailscale)
+
+Existe un servicio de subida opcional, desactivado por defecto: recibe MP3/MP4 por el navegador hacia la carpeta de entrada, los valida en un proceso aislado y los publica en la cola normal. Solo escucha en `127.0.0.1:8765`; el acceso desde otros equipos de tu tailnet se publica manualmente con Tailscale Serve (HTTPS). Nunca se expone a internet (sin Funnel) y no hay acceso por HTTP/LAN directo. La autenticación por secreto compartido no cifra el tráfico: el cifrado lo aporta Serve.
+
+Los pasos del operador —requisitos, el comando exacto de `tailscale serve`, verificación, límites de seguridad y el flujo del secreto— están en [docs/UPLOAD-SERVE.md](docs/UPLOAD-SERVE.md).
 
 ## Qué se considera nuevo
 

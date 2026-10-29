@@ -100,7 +100,7 @@ def install(install_dir: Path, config: Config, download: bool, token: str, repor
         if not python.exists():
             run_logged([uv, "venv", "--python", "3.11", "--managed-python", venv], env, log)
         report("Instalando dependencias de voz. Esta etapa puede tardar varios minutos…")
-        run_logged([uv, "pip", "install", "--python", python, f"{wheel}[engine]"], env, log)
+        run_logged([uv, "pip", "install", "--python", python, f"{wheel}[engine,upload]"], env, log)
         report("Creando el panel AudioScribe y los accesos de control…")
         create_launchers(install_dir, python, config_path, shortcuts)
         if download:

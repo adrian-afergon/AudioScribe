@@ -19,12 +19,22 @@ def main(argv=None):
     sub.add_parser("run", help="Vigilar carpeta y procesar la cola")
     sub.add_parser("scan", help="Revisar una vez; no transcribe")
     sub.add_parser("status", help="Mostrar trabajos y rutas de salida")
-    sub.add_parser("stop", help="Detener al terminar el bloque actual")
+    stop = sub.add_parser("stop", help="Detener al terminar el bloque actual")
+    stop.add_argument("--force", action="store_true",
+                      help="Cancelar también las cargas activas sin publicar")
     sub.add_parser("setup", help="Abrir asistente de configuración")
     sub.add_parser("panel", help="Ver actividad y controlar el servicio")
     sub.add_parser("pause", help="Pausar el procesamiento sin perder el trabajo actual")
     sub.add_parser("resume", help="Reanudar el procesamiento")
     sub.add_parser("models", help="Descargar y verificar modelos")
+    upload = sub.add_parser("upload", help="Controlar el servicio de subida")
+    upload_sub = upload.add_subparsers(dest="upload_action", required=True)
+    upload_sub.add_parser("enable", help="Habilitar el servicio de subida")
+    upload_disable = upload_sub.add_parser("disable", help="Deshabilitar el servicio de subida")
+    upload_disable.add_argument("--force", action="store_true",
+                                help="Cancelar también las cargas activas sin publicar")
+    upload_sub.add_parser("status", help="Estado del servicio de subida")
+    upload_sub.add_parser("regenerate-secret", help="Regenerar el secreto de acceso")
     retry = sub.add_parser("retry", help="Reintentar trabajo con error")
     retry.add_argument("id", type=int)
     reprocess = sub.add_parser("reprocess", help="Transcribir un archivo explícitamente, incluso preexistente")
@@ -49,14 +59,35 @@ def main(argv=None):
         error_path = Path(config.data_dir) / "startup-error.txt"
         try:
             error_path.unlink(missing_ok=True)
-            run(config, once=args.action == "scan")
+            run(config, once=args.action == "scan", config_path=args.config.resolve())
         except Exception as error:
             logging.exception("El servicio no pudo iniciarse o continuar")
             atomic_write(error_path, str(error))
             raise
+    elif args.action == "upload":
+        from .upload.controller import UploadController
+        controller = UploadController(config, args.config.resolve())
+        if args.upload_action == "enable":
+            outcome = controller.enable()
+        elif args.upload_action == "disable":
+            outcome = controller.disable(force=args.force)
+        elif args.upload_action == "status":
+            outcome = controller.status()
+        else:
+            outcome = controller.regenerate_secret()
+        print(json.dumps(outcome.public(), ensure_ascii=False, indent=2))
+        if outcome.outcome == "acknowledged" and outcome.secret:
+            print(outcome.secret)
+            print("Guarde este secreto ahora: no se volverá a mostrar.")
+        return
     elif args.action == "stop":
-        atomic_write(Path(config.data_dir) / "stop.request", "stop\n")
-        print("Detención solicitada. Se conservará el progreso.")
+        from .control import request as control_request
+        control_request(Path(config.data_dir), "stop", force=bool(args.force))
+        if args.force:
+            print("Detención forzada solicitada; las cargas activas se cancelarán sin publicar.")
+        else:
+            print("Detención solicitada. Se conservará el progreso. Si hay cargas activas, la "
+                  "detención será rechazada; use --force para cancelarlas.")
     elif args.action in ("pause", "resume"):
         from .control import request
         request(Path(config.data_dir), args.action)

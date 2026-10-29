@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import json
+import math
 import os
+import sys
 import tempfile
+import threading
 import tomllib
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 def atomic_write(path: Path, text: str) -> None:
@@ -20,6 +24,24 @@ def atomic_write(path: Path, text: str) -> None:
     finally:
         if os.path.exists(tmp):
             os.unlink(tmp)
+
+
+PROTECTED_UPLOAD_FIELDS = ("upload_origin", "upload_port", "upload_max_bytes",
+                           "upload_concurrency", "upload_reserve_bytes",
+                           "upload_inactivity_seconds")
+
+
+def reject_protected_upload_change(existing: Config, incoming: Config) -> None:
+    """Input-root and upload boundary/limit changes require a disabled upload
+    service (A2). Unrelated changes are accepted and preserved for restart."""
+    if not existing.upload_enabled:
+        return
+    if (Path(existing.input_dir).resolve() != Path(incoming.input_dir).resolve()
+            or Path(existing.output_dir).resolve() != Path(incoming.output_dir).resolve()):
+        raise ValueError("Las carpetas no pueden cambiar con la subida habilitada; desactive el servicio de subida primero.")
+    for field in PROTECTED_UPLOAD_FIELDS:
+        if getattr(existing, field) != getattr(incoming, field):
+            raise ValueError(f"{field} no puede cambiar con la subida habilitada; desactive el servicio de subida primero.")
 
 
 @dataclass
@@ -37,6 +59,13 @@ class Config:
     chunk_seconds: int = 600
     max_attempts: int = 3
     autostart: bool = True
+    upload_enabled: bool = False
+    upload_origin: str = ""
+    upload_port: int = 8765
+    upload_max_bytes: int = 20_000_000_000
+    upload_concurrency: int = 2
+    upload_reserve_bytes: int = 25_000_000_000
+    upload_inactivity_seconds: int = 600
 
     @property
     def database(self) -> Path:
@@ -71,6 +100,27 @@ class Config:
                 raise ValueError(f"{name} debe ser un entero positivo.")
         if self.chunk_seconds < 30:
             raise ValueError("Los bloques deben durar al menos 30 segundos.")
+        if type(self.upload_enabled) is not bool:
+            raise ValueError("upload_enabled debe ser booleano.")
+        for name in ("upload_port", "upload_max_bytes", "upload_concurrency", "upload_reserve_bytes"):
+            value = getattr(self, name)
+            minimum = 0 if name == "upload_reserve_bytes" else 1
+            if type(value) is not int or value < minimum or value > sys.maxsize:
+                raise ValueError(f"{name} debe ser un entero representable >= {minimum}.")
+        timeout = self.upload_inactivity_seconds
+        if (type(timeout) not in (int, float) or not math.isfinite(timeout)
+                or timeout <= 0 or timeout > threading.TIMEOUT_MAX):
+            raise ValueError("upload_inactivity_seconds debe ser finito, positivo y representable.")
+        if self.upload_port > 65535:
+            raise ValueError("upload_port debe estar entre 1 y 65535.")
+        if not isinstance(self.upload_origin, str):
+            raise ValueError("upload_origin debe ser texto.")
+        if self.upload_enabled:
+            origin = urlsplit(self.upload_origin)
+            if (origin.scheme != "https" or not origin.hostname
+                    or not origin.hostname.endswith(".ts.net") or origin.username
+                    or origin.password or origin.path or origin.query or origin.fragment):
+                raise ValueError("upload_origin debe ser un origen HTTPS .ts.net canónico.")
         if probe:
             for name in ("input_dir", "output_dir", "data_dir"):
                 paths[name].mkdir(parents=True, exist_ok=True)

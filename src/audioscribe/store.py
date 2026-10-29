@@ -6,6 +6,52 @@ import sqlite3
 import time
 from pathlib import Path
 
+# Migration ownership is monotonic (A9): user_version only ever moves forward,
+# never silently reset by this constructor. Version 2 adds the upload history
+# and authentication/session tables; version 3 widens upload history with the
+# ingestion profile snapshot and observed job linkage for truthful downstream
+# status projection.
+SCHEMA_VERSION = 3
+
+BASE_SCHEMA = """
+    CREATE TABLE IF NOT EXISTS roots (path TEXT PRIMARY KEY, created REAL NOT NULL);
+    CREATE TABLE IF NOT EXISTS jobs (
+        id INTEGER PRIMARY KEY, source TEXT NOT NULL, sha256 TEXT NOT NULL,
+        profile TEXT NOT NULL, state TEXT NOT NULL CHECK(state IN
+            ('pending','processing','done','error')),
+        attempts INTEGER NOT NULL DEFAULT 0, retry_at REAL NOT NULL DEFAULT 0,
+        created REAL NOT NULL, updated REAL NOT NULL,
+        progress TEXT NOT NULL DEFAULT '', output TEXT, error TEXT,
+        output_sha256 TEXT
+    );
+    CREATE INDEX IF NOT EXISTS jobs_queue ON jobs(state, retry_at);
+    CREATE INDEX IF NOT EXISTS jobs_content ON jobs(sha256, profile);
+    CREATE TABLE IF NOT EXISTS files (
+        root TEXT NOT NULL, path TEXT NOT NULL, signature TEXT NOT NULL,
+        stable_since REAL NOT NULL, ignored INTEGER NOT NULL DEFAULT 0,
+        present INTEGER NOT NULL DEFAULT 1,
+        job_id INTEGER REFERENCES jobs(id), PRIMARY KEY(root,path)
+    );
+"""
+
+UPLOAD_SCHEMA = """
+    CREATE TABLE IF NOT EXISTS upload_history (
+        upload_id TEXT PRIMARY KEY, lineage TEXT, final_name TEXT, root TEXT,
+        state TEXT, bytes_received INTEGER, declared_bytes INTEGER,
+        published_path TEXT, error_code TEXT, outcome TEXT,
+        profile_snapshot TEXT, job_id INTEGER,
+        created REAL, updated REAL
+    );
+    CREATE TABLE IF NOT EXISTS upload_sessions (
+        verifier TEXT PRIMARY KEY, lineage TEXT NOT NULL,
+        auth_epoch INTEGER NOT NULL, created REAL NOT NULL, last_seen REAL NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS upload_lineage_proofs (
+        proof_verifier TEXT PRIMARY KEY, lineage TEXT NOT NULL,
+        auth_epoch INTEGER NOT NULL
+    );
+"""
+
 
 def signature(path: Path) -> str:
     stat = path.stat()
@@ -20,6 +66,22 @@ def digest(path: Path) -> str:
     return h.hexdigest()
 
 
+def ensure_upload_history_columns(db) -> None:
+    """Monotonic v3 widening of an existing upload_history table.
+
+    Column presence is checked against the real table, so running the same
+    helper from both owners is idempotent; a foreign future schema is never
+    touched.
+    """
+    columns = {row[1] for row in db.execute("PRAGMA table_info(upload_history)")}
+    if not columns:
+        return
+    if "profile_snapshot" not in columns:
+        db.execute("ALTER TABLE upload_history ADD COLUMN profile_snapshot TEXT")
+    if "job_id" not in columns:
+        db.execute("ALTER TABLE upload_history ADD COLUMN job_id INTEGER")
+
+
 class Store:
     def __init__(self, path: Path):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -27,27 +89,17 @@ class Store:
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("PRAGMA foreign_keys=ON")
-        self.db.executescript("""
-            CREATE TABLE IF NOT EXISTS roots (path TEXT PRIMARY KEY, created REAL NOT NULL);
-            CREATE TABLE IF NOT EXISTS jobs (
-                id INTEGER PRIMARY KEY, source TEXT NOT NULL, sha256 TEXT NOT NULL,
-                profile TEXT NOT NULL, state TEXT NOT NULL CHECK(state IN
-                    ('pending','processing','done','error')),
-                attempts INTEGER NOT NULL DEFAULT 0, retry_at REAL NOT NULL DEFAULT 0,
-                created REAL NOT NULL, updated REAL NOT NULL,
-                progress TEXT NOT NULL DEFAULT '', output TEXT, error TEXT,
-                output_sha256 TEXT
-            );
-            CREATE INDEX IF NOT EXISTS jobs_queue ON jobs(state, retry_at);
-            CREATE INDEX IF NOT EXISTS jobs_content ON jobs(sha256, profile);
-            CREATE TABLE IF NOT EXISTS files (
-                root TEXT NOT NULL, path TEXT NOT NULL, signature TEXT NOT NULL,
-                stable_since REAL NOT NULL, ignored INTEGER NOT NULL DEFAULT 0,
-                present INTEGER NOT NULL DEFAULT 1,
-                job_id INTEGER REFERENCES jobs(id), PRIMARY KEY(root,path)
-            );
-            PRAGMA user_version=1;
-        """)
+        version = self.db.execute("PRAGMA user_version").fetchone()[0]
+        if version > SCHEMA_VERSION:
+            # A foreign future schema owns this file; never downgrade it.
+            return
+        if version < 1:
+            self.db.executescript(BASE_SCHEMA)
+        if version < SCHEMA_VERSION:
+            self.db.executescript(UPLOAD_SCHEMA)
+            ensure_upload_history_columns(self.db)
+        self.db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
+        self.db.commit()
 
     def close(self):
         self.db.close()

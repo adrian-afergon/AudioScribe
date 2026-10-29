@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AudioScribe — Subidas</title>
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<header>
+  <h1>AudioScribe</h1>
+  <button id="logout" type="button" hidden>Cerrar sesión</button>
+</header>
+
+<section id="login-panel">
+  <h2>Acceso</h2>
+  <p id="reauth-note" hidden>Tu sesión expiró. Ingresá el secreto para continuar; las subidas ya autorizadas terminan solas.</p>
+  <form id="login-form">
+    <label for="secret">Secreto de subida</label>
+    <input id="secret" name="secret" type="password" autocomplete="off" required>
+    <button id="login-button" type="submit">Ingresar</button>
+  </form>
+  <p id="login-error" class="error" hidden></p>
+</section>
+
+<main id="app-panel" hidden>
+  <section id="upload-panel">
+    <h2>Subir audios</h2>
+    <p id="status-line"></p>
+    <p id="stale-badge" hidden>Estados no actualizados: no se pudo consultar el servidor. Las subidas no se reinician solas.</p>
+    <label for="file-input">Elegir archivos (.mp3 / .mp4)</label>
+    <input id="file-input" type="file" multiple accept=".mp3,.mp4">
+    <ul id="queue-list"></ul>
+  </section>
+
+  <section id="history-panel">
+    <h2>Historial compartido (últimos 300)</h2>
+    <table>
+      <thead>
+        <tr><th>Archivo</th><th>Subida</th><th>Procesamiento</th><th>Bytes</th><th>Detalle</th></tr>
+      </thead>
+      <tbody id="history-body"></tbody>
+    </table>
+  </section>
+</main>
+</body>
+</html>

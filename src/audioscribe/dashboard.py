@@ -5,6 +5,7 @@ import re
 import sqlite3
 import subprocess
 import sys
+import threading
 import time
 import tkinter as tk
 from pathlib import Path
@@ -77,6 +78,11 @@ class Dashboard:
         self.buttons = {}
         for name, label in (("start", "Iniciar"), ("pause", "Pausar"), ("resume", "Reanudar"), ("stop", "Detener")):
             button = ttk.Button(toolbar, text=label, command=lambda n=name: self.action(n))
+            button.pack(side="left", padx=(0, 8))
+            self.buttons[name] = button
+        for name, label in (("upload_status", "Estado de subida"), ("upload_enable", "Habilitar subida"),
+                            ("upload_disable", "Deshabilitar subida"), ("upload_regenerate", "Regenerar secreto")):
+            button = ttk.Button(toolbar, text=label, command=lambda n=name: self.upload_action(n))
             button.pack(side="left", padx=(0, 8))
             self.buttons[name] = button
         ttk.Button(toolbar, text="Configurar…", command=self.configure).pack(side="right")
@@ -235,10 +241,53 @@ class Dashboard:
                 if not service_active(Path(self.config.data_dir)):
                     start(Path(sys.executable), self.config_path)
                     self.pending_start_until = time.monotonic() + 3
+            elif action == "stop":
+                # Owner re-checks atomically; the snapshot is advisory.
+                active = int(self.last.get("runtime", {}).get("upload_active") or 0)
+                if active and not self.confirm_stop(active):
+                    return
+                request(Path(self.config.data_dir), "stop", force=active > 0)
             else:
                 request(Path(self.config.data_dir), action)
         except Exception as error:
             messagebox.showerror("AudioScribe", str(error), parent=self.root)
+
+    def confirm_stop(self, active_uploads: int) -> bool:
+        return messagebox.askyesno(
+            "AudioScribe",
+            f"Hay {active_uploads} carga(s) activa(s). ¿Detener el servicio y cancelar "
+            "las cargas sin publicar?", parent=self.root)
+
+    def upload_action(self, name):
+        def worker():
+            try:
+                from .upload.controller import UploadController
+                controller = UploadController(Config.load(self.config_path), self.config_path)
+                actions = {"upload_status": "status", "upload_enable": "enable",
+                           "upload_disable": "disable", "upload_regenerate": "regenerate_secret"}
+                outcome = getattr(controller, actions[name])()
+                self.root.after(0, lambda: self.show_upload_outcome(name, outcome))
+            except Exception as error:
+                self.root.after(0, lambda: messagebox.showerror(
+                    "AudioScribe", str(error), parent=self.root))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def show_upload_outcome(self, name, outcome):
+        if outcome.outcome == "uncertain":
+            messagebox.showwarning(
+                "AudioScribe",
+                "El resultado es incierto (sin acuse). Consulte el estado y vuelva a intentar; "
+                "no se reintentó nada automáticamente.", parent=self.root)
+        elif outcome.outcome == "rejected":
+            messagebox.showerror("AudioScribe", f"Rechazado: {outcome.detail or 'sin detalle'}",
+                                 parent=self.root)
+        elif outcome.secret:
+            messagebox.showinfo(
+                "Secreto generado",
+                outcome.secret + "\n\nGuárdelo ahora: no se volverá a mostrar.",
+                parent=self.root)
+        else:
+            messagebox.showinfo("AudioScribe", "Operación confirmada.", parent=self.root)
 
     def retry(self):
         row = self.selected()
