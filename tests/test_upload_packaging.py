@@ -18,6 +18,10 @@ import json
 import os
 import shutil
 import subprocess
+
+from audioscribe import __version__
+
+_DIST_INFO = f"audioscribe_local-{__version__}.dist-info"
 import sys
 import tarfile
 import zipfile
@@ -92,7 +96,7 @@ def _unpacked_wheel(dist, tmp_path) -> Path:
 def _wheel_metadata(dist) -> email.message.Message:
     with zipfile.ZipFile(dist[0]) as archive:
         return email.message_from_string(
-            archive.read("audioscribe_local-0.3.0.dist-info/METADATA").decode("utf-8"))
+            archive.read(f"{_DIST_INFO}/METADATA").decode("utf-8"))
 
 
 def test_installed_upload_extra(dist):
@@ -111,7 +115,7 @@ def test_installed_upload_extra(dist):
         assert not [r for r in base if "extra" not in r], \
             "uvicorn/h11/av must stay optional, never base dependencies"
     with tarfile.open(dist[1]) as archive:
-        pkg_info = archive.extractfile("audioscribe_local-0.3.0/PKG-INFO")
+        pkg_info = archive.extractfile(f"audioscribe_local-{__version__}/PKG-INFO")
         assert pkg_info is not None, "sdist must carry PKG-INFO"
         sdist_metadata = email.message_from_string(pkg_info.read().decode("utf-8"))
     assert "upload" in (sdist_metadata.get_all("Provides-Extra") or [])
@@ -122,7 +126,7 @@ def test_installed_static_assets(dist, tmp_path):
     tree = _unpacked_wheel(dist, tmp_path)
     for name in STATIC_ASSETS:
         assert (tree / "audioscribe" / "upload" / "static" / name).is_file(), name
-    record = (tree / "audioscribe_local-0.3.0.dist-info" / "RECORD").read_text()
+    record = (tree / _DIST_INFO / "RECORD").read_text()
     for name in STATIC_ASSETS:
         assert f"audioscribe/upload/static/{name}" in record, \
             f"{name} must be listed in RECORD (installed by pip)"
@@ -193,7 +197,7 @@ def test_packaged_upload_disabled_and_enableable(dist, tmp_path):
     result = subprocess.run([str(_venv_python(venv_dir)), "-c", probe], cwd=outside,
                             env=env, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-3000:]
-    assert "base-import-ok 0.3.0" in result.stdout
+    assert f"base-import-ok {__version__}" in result.stdout
     assert "uvicorn-missing No module named 'uvicorn'" in result.stdout
     assert "enable-error No module named 'uvicorn'" in result.stdout, \
         "the enable path must fail with the missing dependency named"
